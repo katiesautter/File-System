@@ -71,6 +71,7 @@ int FileSystem::createf(char name[8], int size) {
 	open_files[inode_num].wait();
 
 	// Find a starting block
+	free_block_lock.wait();
 	int *blockPtrs = new int[size];
 	blockPtrs[0] = -1;
 	for (int i = 0; i < FREE_BLOCK_LIST_SIZE; i++) {
@@ -83,6 +84,7 @@ int FileSystem::createf(char name[8], int size) {
 		cout << "There are no free blocks left." << endl;
 		delete[] blockPtrs;
 		open_files[inode_num].notify();
+		free_block_lock.notify();
 		return -1;
 	}
 
@@ -101,6 +103,7 @@ int FileSystem::createf(char name[8], int size) {
 		cout << "There are insufficient free blocks left." << endl;
 		delete [] blockPtrs;
 		open_files[inode_num].notify();
+		free_block_lock.notify();
 		return -1;
 	}
 
@@ -108,20 +111,22 @@ int FileSystem::createf(char name[8], int size) {
 		// Update the free block list
 	for (int i = 0; i < size; i++)
 		free_block_list[blockPtrs[i]] = 1;
+	free_block_lock.notify();
 		// Update the entry for the inode
 	strncpy(inodes[inode_num].name, name, 8);
 	for (int i = 0; i < size; i++)
 		inodes[inode_num].blockPointers[i] = blockPtrs[i];
 	inodes[inode_num].size = size;
 	inodes[inode_num].used = 1;
+	open_files[inode_num].notify();
 
 	saveSuperBlock();
 
 	delete [] blockPtrs;
 	cout << "Created file with name " << string(inodes[inode_num].name) << endl;
-	open_files[inode_num].notify();
 	return 1;
-} // End Create
+}
+
 int FileSystem::deletef(char name[8]) {
 	// Delete the file with this name
 	// Step 1: Look for an inode that is in use with given name
@@ -150,17 +155,20 @@ int FileSystem::deletef(char name[8]) {
 	open_files[inode_num].wait();
 
 	// Free the blocks in the block list
+	free_block_lock.wait();
 	for (int i = 0; i < inodes[inode_num].size; i++)
 		free_block_list[inodes[inode_num].blockPointers[i]] = 0;
+	free_block_lock.notify();
 
 	// Free the inode
 	inodes[inode_num].used = 0;
+	open_files[inode_num].notify();
+	
 	cout << "Deleted file with name " << string(name) << endl;
 	saveSuperBlock();
-
-	open_files[inode_num].notify();
 	return 1;
-} // End Delete
+}
+
 int FileSystem::ls(void) {
 	// List names of all files on disk
 	// Step 1: Print the name and size fields of all used inodes.
@@ -172,7 +180,8 @@ int FileSystem::ls(void) {
 	cout << endl;
 
 	return 1;
-} // End ls
+}
+
 int FileSystem::readf(char name[8], int blockNum, char buf[1024]) {
 	// read this block from this file
 	// Return an error if and when appropriate. For instance, make sure
@@ -210,7 +219,8 @@ int FileSystem::readf(char name[8], int blockNum, char buf[1024]) {
 		<< " located at block " << blockPos << " of the disk" << endl;
 	cout << "Data: " << string(buf) << endl;
 	return 1;
-} // End read
+}
+
 int FileSystem::writef(char name[8], int blockNum, char buf[1024]) {
 	// write this block to this file
 	// Return an error if and when appropriate.
@@ -246,7 +256,9 @@ int FileSystem::writef(char name[8], int blockNum, char buf[1024]) {
 	disk->write(buf, BLOCK_SIZE);
 
 	// flag block for having changes
+	modified_block_lock.wait();
 	modified_block_list[blockPos] = 1;
+	modified_block_lock.notify();
 
 	cout << "Wrote data from block " << blockNum << " of file named " << string(name)
 		<< " located at block " << blockPos << " of the disk" << endl;
@@ -322,15 +334,24 @@ void FileSystem::readSuperBlock() {
 }
 
 void FileSystem::saveSuperBlock() {
+	modified_block_lock.wait();
 	modified_block_list[0] = 1; // modification of the super block
+	modified_block_lock.notify();
+
 	char * super_block = new char[BLOCK_SIZE];
 
 	// save the free block list to the buffer
+	free_block_lock.wait();
 	for (int i = 0; i < FREE_BLOCK_LIST_SIZE; i++)
 		super_block[i] = free_block_list[i];
+	free_block_lock.notify();
 
 	// serialize to char[] and save the inodes to the buffer
 	for (int inode_counter = 0; inode_counter < NUM_INODES; inode_counter++) {
+		// get access to file before writing the meta data
+		open_files[inode_counter].wait();
+
+		// calculate the offset in buffer for current inode
 		int inode_start_offset = FREE_BLOCK_LIST_SIZE + (INODE_SIZE * inode_counter);
 
 		// convert used int to char[] and save it to the buffer
@@ -359,6 +380,8 @@ void FileSystem::saveSuperBlock() {
 			}
 		}
 		delete[] int_conv;
+
+		open_files[inode_counter].notify();
 	}
 
 	disk->seekg(0, ios::beg);
