@@ -36,8 +36,9 @@ private:
 		int used;
 	};
 
-	fstream * disk;
-	char free_block_list[FREE_BLOCK_LIST_SIZE];
+	fstream * disk; // simulation keeps the "disk" on a file
+	char free_block_list[FREE_BLOCK_LIST_SIZE]; // array to track which blocks are free
+	char modified_block_list[FREE_BLOCK_LIST_SIZE]; // array to track blocks modified since last backup
 	Inode inodes[NUM_INODES];
 	Semaphore open_files[NUM_INODES]; // semaphore to control file access
 

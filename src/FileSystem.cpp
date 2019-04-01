@@ -236,15 +236,24 @@ int FileSystem::writef(char name[8], int blockNum, char buf[1024]) {
 		return -1;
 	}
 
+	// Aquire the file
+	open_files[inode_num].wait();
+
 	// Move to the start position and write it
 	int blockPos = inodes[inode_num].blockPointers[blockNum];
 	int bufSpace = blockPos * BLOCK_SIZE;
 	disk->seekg(bufSpace, ios::beg);
 	disk->write(buf, BLOCK_SIZE);
 
+	// flag block for having changes
+	modified_block_list[blockPos] = 1;
+
 	cout << "Wrote data from block " << blockNum << " of file named " << string(name)
 		<< " located at block " << blockPos << " of the disk" << endl;
 	cout << "Data: " << string(buf) << endl;
+
+	// Release the lock and return
+	open_files[inode_num].notify();
 	return 1;
 } // end write
 
@@ -313,6 +322,7 @@ void FileSystem::readSuperBlock() {
 }
 
 void FileSystem::saveSuperBlock() {
+	modified_block_list[0] = 1; // modification of the super block
 	char * super_block = new char[BLOCK_SIZE];
 
 	// save the free block list to the buffer
