@@ -16,7 +16,8 @@ Cache::Cache()
 
 void Cache::saveToCache(int blockNum, char buf[1024])
 {
-
+	head = new CacheNode(blockNum, buf);
+	//cout << head->toString() << endl;
 }
 
 char* Cache::getBlock(int blockNum)

@@ -169,6 +169,13 @@ int FileSystem::readf(char name[8], int blockNum, char buf[1024]) {
 	// Step 1: Locate the inode for this file as in Step 1 of delete.
 	// Step 2: Seek to blockPointers[blockNum] and read the block
 	// from disk to buf.
+	char* data = cache.getBlock(blockNum);
+	if (data != NULL)
+	{
+		memcpy(buf, data, BLOCK_SIZE);
+		return 1;
+	}
+
 	
 	// Find the inode corresponding to the file
 	int inode_num = -1;
@@ -198,6 +205,8 @@ int FileSystem::readf(char name[8], int blockNum, char buf[1024]) {
 	cout << "Read data from block " << blockNum << " of file named " << string(name) 
 		<< " located at block " << blockPos << " of the disk" << endl;
 	cout << "Data: " << string(buf) << endl;
+	cache.saveToCache(blockNum, buf); // add block to cache
+
 	return 1;
 } // End read
 int FileSystem::writef(char name[8], int blockNum, char buf[1024]) {
@@ -234,6 +243,8 @@ int FileSystem::writef(char name[8], int blockNum, char buf[1024]) {
 	cout << "Wrote data from block " << blockNum << " of file named " << string(name)
 		<< " located at block " << blockPos << " of the disk" << endl;
 	cout << "Data: " << string(buf) << endl;
+	cache.saveToCache(blockNum, buf);  //add block changes to cache
+
 	return 1;
 } // end write
 
