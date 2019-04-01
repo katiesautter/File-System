@@ -3,6 +3,7 @@ class Cache
 {
 public:
 	Cache();
+	void saveToCache();
 	~Cache();
 };
 
