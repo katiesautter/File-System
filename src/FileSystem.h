@@ -1,5 +1,6 @@
 #pragma once
 #include <fstream>
+#include "Semaphore.h"
 using namespace std;
 
 class FileSystem
@@ -38,6 +39,7 @@ private:
 	fstream * disk;
 	char free_block_list[FREE_BLOCK_LIST_SIZE];
 	Inode inodes[NUM_INODES];
+	Semaphore open_files[NUM_INODES]; // semaphore to control file access
 
 	int convertCharToInt(char toConvert[4]);
 	void convertIntToChar(int toConvert, char output[4]);

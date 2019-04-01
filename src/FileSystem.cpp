@@ -67,6 +67,9 @@ int FileSystem::createf(char name[8], int size) {
 		}
 	}
 
+	// Lock the inode
+	open_files[inode_num].wait();
+
 	// Find a starting block
 	int *blockPtrs = new int[size];
 	blockPtrs[0] = -1;
@@ -79,6 +82,7 @@ int FileSystem::createf(char name[8], int size) {
 	if (blockPtrs[0] == -1) {
 		cout << "There are no free blocks left." << endl;
 		delete[] blockPtrs;
+		open_files[inode_num].notify();
 		return -1;
 	}
 
@@ -96,6 +100,7 @@ int FileSystem::createf(char name[8], int size) {
 	if (blockPtrs[size - 1] == -1) {
 		cout << "There are insufficient free blocks left." << endl;
 		delete [] blockPtrs;
+		open_files[inode_num].notify();
 		return -1;
 	}
 
@@ -114,6 +119,7 @@ int FileSystem::createf(char name[8], int size) {
 
 	delete [] blockPtrs;
 	cout << "Created file with name " << string(inodes[inode_num].name) << endl;
+	open_files[inode_num].notify();
 	return 1;
 } // End Create
 int FileSystem::deletef(char name[8]) {
@@ -140,6 +146,9 @@ int FileSystem::deletef(char name[8]) {
 		return -1;
 	}
 
+	// lock the file
+	open_files[inode_num].wait();
+
 	// Free the blocks in the block list
 	for (int i = 0; i < inodes[inode_num].size; i++)
 		free_block_list[inodes[inode_num].blockPointers[i]] = 0;
@@ -148,6 +157,8 @@ int FileSystem::deletef(char name[8]) {
 	inodes[inode_num].used = 0;
 	cout << "Deleted file with name " << string(name) << endl;
 	saveSuperBlock();
+
+	open_files[inode_num].notify();
 	return 1;
 } // End Delete
 int FileSystem::ls(void) {
