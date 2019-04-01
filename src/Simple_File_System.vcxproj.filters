@@ -27,6 +27,9 @@
     <ClInclude Include="Cache.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CacheNode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -39,6 +42,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Cache.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CacheNode.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
