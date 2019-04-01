@@ -1,5 +1,6 @@
 #pragma once
 #include <fstream>
+#include "Cache.h"
 using namespace std;
 
 class FileSystem
@@ -17,6 +18,7 @@ public:
 	static const int FREE_BLOCK_LIST_SIZE = 128;
 	static const int NUM_INODES = 16;
 	static const int INODE_SIZE = 48;
+
 
 private:
 	struct Inode {
@@ -38,10 +40,12 @@ private:
 	fstream * disk;
 	char free_block_list[FREE_BLOCK_LIST_SIZE];
 	Inode inodes[NUM_INODES];
+	Cache cache;
 
 	int convertCharToInt(char toConvert[4]);
 	void convertIntToChar(int toConvert, char output[4]);
 	void readSuperBlock();
 	void saveSuperBlock();
+
 };
 
