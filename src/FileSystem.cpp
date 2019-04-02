@@ -434,6 +434,8 @@ int FileSystem::init_backup(string diskName) {
 		modified_block_list[i] = 0;
 	modified_block_lock.notify();
 
+	saveSuperBlock();
+
 	return 1;
 }
 
@@ -476,7 +478,49 @@ void FileSystem::newBackup(string diskName) {
 	delete[] inodes_copy;
 }
 void FileSystem::modifiedBackup(string diskName) {
+	fstream *backup = new fstream(diskName);
+	char * block = new char[BLOCK_SIZE];
+	Inode * inodes_copy = new Inode[NUM_INODES];
 
+	for (int inode_counter = 0; inode_counter < NUM_INODES; inode_counter++) {
+		// aquire the file
+		open_files[inode_counter].wait();
+
+		// make a deep copy of the inode
+		strcpy(inodes_copy[inode_counter].name, inodes[inode_counter].name);
+		for (int i = 0; i < 8; i++)
+			inodes_copy[inode_counter].blockPointers[i] = inodes[inode_counter].blockPointers[i];
+		inodes_copy[inode_counter].size = inodes[inode_counter].size;
+		inodes_copy[inode_counter].used = inodes[inode_counter].used;
+
+		// copy each block that appears in the modified list
+		for (int i = 0; i < inodes[inode_counter].size; i++) {
+			modified_block_lock.wait();
+
+			int blockPos = inodes[inode_counter].blockPointers[i];
+			// check for modification
+			if (modified_block_list[blockPos] == 1) {
+				// read the data from the current disk
+				readf(inodes[inode_counter].name, i, block);
+				// Move to the start position and write it
+				int bufSpace = blockPos * BLOCK_SIZE;
+				backup->seekg(bufSpace, ios::beg);
+				backup->write(block, BLOCK_SIZE);
+			}
+
+			modified_block_lock.notify();
+		}
+
+		// release the file
+		open_files[inode_counter].notify();
+	}
+
+	backupSuperBlock(backup, inodes_copy);
+
+	backup->close();
+	delete backup;
+	delete[] block;
+	delete[] inodes_copy;
 }
 void FileSystem::backupSuperBlock(fstream* backup, Inode inodes_copy[]) {
 	char * super_block = new char[BLOCK_SIZE];
