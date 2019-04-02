@@ -23,6 +23,7 @@ FileSystem::FileSystem(string diskName) {
 }
 FileSystem::~FileSystem() {
 	disk->close();
+	delete disk;
 }
 int FileSystem::createf(char name[8], int size) { 
   //create a file with this name and this size
@@ -292,8 +293,10 @@ void FileSystem::readSuperBlock() {
 	disk->read(super_block, BLOCK_SIZE);
 
 	// Read the free block list
+	free_block_lock.wait();
 	for (int i = 0; i < FREE_BLOCK_LIST_SIZE; i++)
 		free_block_list[i] = super_block[i];
+	free_block_lock.notify();
 
 	// Read and parse the inodes
 	for (int inode_counter = 0; inode_counter < NUM_INODES; inode_counter++) {
@@ -329,6 +332,14 @@ void FileSystem::readSuperBlock() {
 		}
 		inode_start_offset += (4 * 8);
 	}
+
+	// Read the modified block list
+	modified_block_lock.wait();
+	for (int i = 0; i < FREE_BLOCK_LIST_SIZE; i++) {
+		int start_offset = FREE_BLOCK_LIST_SIZE + (INODE_SIZE * NUM_INODES) + i;
+		modified_block_list[i] = super_block[start_offset];
+	}
+	modified_block_lock.notify();
 
 	delete [] super_block;
 }
@@ -383,6 +394,14 @@ void FileSystem::saveSuperBlock() {
 
 		open_files[inode_counter].notify();
 	}
+
+	// Save the modified block list
+	modified_block_lock.wait();
+	for (int i = 0; i < FREE_BLOCK_LIST_SIZE; i++) {
+		int start_offset = FREE_BLOCK_LIST_SIZE + (INODE_SIZE * NUM_INODES) + i;
+		super_block[start_offset] = modified_block_list[i];
+	}
+	modified_block_lock.notify();
 
 	disk->seekg(0, ios::beg);
 	disk->write(super_block, BLOCK_SIZE);
