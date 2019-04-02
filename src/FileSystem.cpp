@@ -405,6 +405,7 @@ void FileSystem::saveSuperBlock() {
 
 	disk->seekg(0, ios::beg);
 	disk->write(super_block, BLOCK_SIZE);
+	delete[] super_block;
 }
 
 int FileSystem::init_backup(string diskName) {
