@@ -429,16 +429,103 @@ int FileSystem::init_backup(string diskName) {
 	else
 		newBackup(diskName);
 
+	modified_block_lock.wait();
+	for (int i = 0; i < FREE_BLOCK_LIST_SIZE; i++)
+		modified_block_list[i] = 0;
+	modified_block_lock.notify();
+
 	return 1;
 }
 
 void FileSystem::newBackup(string diskName) {
 	fstream *backup = new fstream(diskName);
 	char * block = new char[BLOCK_SIZE];
+	Inode * inodes_copy = new Inode[NUM_INODES];
+
+	for (int inode_counter = 0; inode_counter < NUM_INODES; inode_counter++) {
+		// aquire the file
+		open_files[inode_counter].wait();
+
+		// make a deep copy of the inode
+		strcpy(inodes_copy[inode_counter].name, inodes[inode_counter].name);
+		for (int i = 0; i < 8; i++)
+			inodes_copy[inode_counter].blockPointers[i] = inodes[inode_counter].blockPointers[i];
+		inodes_copy[inode_counter].size = inodes[inode_counter].size;
+		inodes_copy[inode_counter].used = inodes[inode_counter].used;
+
+		// copy each block
+		for (int i = 0; i < inodes[inode_counter].size; i++) {
+			// read the data from the current disk
+			readf(inodes[inode_counter].name, i, block);
+			// Move to the start position and write it
+			int blockPos = inodes[inode_counter].blockPointers[i];
+			int bufSpace = blockPos * BLOCK_SIZE;
+			backup->seekg(bufSpace, ios::beg);
+			backup->write(block, BLOCK_SIZE);
+		}
+
+		// release the file
+		open_files[inode_counter].notify();
+	}
+
+	backupSuperBlock(backup, inodes_copy);
 
 	backup->close();
+	delete backup;
 	delete[] block;
+	delete[] inodes_copy;
 }
 void FileSystem::modifiedBackup(string diskName) {
 
+}
+void FileSystem::backupSuperBlock(fstream* backup, Inode inodes_copy[]) {
+	char * super_block = new char[BLOCK_SIZE];
+
+	// save the free block list to the buffer
+	free_block_lock.wait();
+	for (int i = 0; i < FREE_BLOCK_LIST_SIZE; i++)
+		super_block[i] = free_block_list[i];
+	free_block_lock.notify();
+
+	// serialize to char[] and save the inodes to the buffer
+	for (int inode_counter = 0; inode_counter < NUM_INODES; inode_counter++) {
+		// calculate the offset in buffer for current inode
+		int inode_start_offset = FREE_BLOCK_LIST_SIZE + (INODE_SIZE * inode_counter);
+
+		// convert used int to char[] and save it to the buffer
+		char * int_conv = new char[4];
+		convertIntToChar(inodes_copy[inode_counter].used, int_conv);
+		for (int i = 0; i < 4; i++)
+			super_block[(inode_start_offset + i)] = int_conv[i];
+		inode_start_offset += 4;
+
+		// save the name by character to the buffer
+		for (int i = 0; i < 8; i++)
+			super_block[(inode_start_offset + i)] = inodes_copy[inode_counter].name[i];
+		inode_start_offset += 8;
+
+		// convert size int to char[] and save it to the buffer
+		convertIntToChar(inodes_copy[inode_counter].size, int_conv);
+		for (int i = 0; i < 4; i++)
+			super_block[(inode_start_offset + i)] = int_conv[i];
+		inode_start_offset += 4;
+
+		// convert each of the int block pointers to char[] and save them to the buffer
+		for (int i = 0; i < 8; i++) {
+			convertIntToChar(inodes_copy[inode_counter].blockPointers[i], int_conv);
+			for (int j = 0; j < 4; j++) {
+				super_block[(inode_start_offset + 4 * i + j)] = int_conv[j];
+			}
+		}
+		delete[] int_conv;
+	}
+
+	// Flag that this is already a backup
+	int offset = FREE_BLOCK_LIST_SIZE + (INODE_SIZE * NUM_INODES);
+	super_block[offset] = 1;
+
+	backup->seekg(0, ios::beg);
+	backup->write(super_block, BLOCK_SIZE);
+	
+	delete[] super_block;
 }

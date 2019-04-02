@@ -53,7 +53,7 @@ private:
 	
 	void newBackup(string diskName); // start a complete backup
 	void modifiedBackup(string diskName); // start a backup of only modified files
-	void backupSuperBlock();
-	void backupBlock();
+	void backupSuperBlock(fstream* backup, Inode inodes_copy[]);
+
 };
 
