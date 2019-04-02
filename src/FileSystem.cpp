@@ -406,3 +406,38 @@ void FileSystem::saveSuperBlock() {
 	disk->seekg(0, ios::beg);
 	disk->write(super_block, BLOCK_SIZE);
 }
+
+int FileSystem::init_backup(string diskName) {
+	fstream *backup = new fstream(diskName);
+
+	// read the first block of the backup
+	char * block = new char[BLOCK_SIZE];
+	backup->seekg(0, ios::beg);
+	backup->read(block, BLOCK_SIZE);
+
+	// check if it has previously been saved
+	int offset = FREE_BLOCK_LIST_SIZE + (INODE_SIZE * NUM_INODES);
+	char flag_bit = block[offset];
+
+	backup->close();
+	delete backup;
+
+	// start the proper type of backup
+	if (flag_bit == 1)
+		modifiedBackup(diskName);
+	else
+		newBackup(diskName);
+
+	return 1;
+}
+
+void FileSystem::newBackup(string diskName) {
+	fstream *backup = new fstream(diskName);
+	char * block = new char[BLOCK_SIZE];
+
+	backup->close();
+	delete[] block;
+}
+void FileSystem::modifiedBackup(string diskName) {
+
+}

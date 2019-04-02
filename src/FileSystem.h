@@ -13,6 +13,7 @@ public:
 	int ls(void);
 	int readf(char name[8], int blockNum, char buf[1024]);
 	int writef(char name[8], int blockNum, char buf[1024]);
+	int init_backup(string diskName);
 
 	static const int BLOCK_SIZE = 1024;
 	static const int FREE_BLOCK_LIST_SIZE = 128;
@@ -49,5 +50,10 @@ private:
 	void convertIntToChar(int toConvert, char output[4]);
 	void readSuperBlock();
 	void saveSuperBlock();
+	
+	void newBackup(string diskName); // start a complete backup
+	void modifiedBackup(string diskName); // start a backup of only modified files
+	void backupSuperBlock();
+	void backupBlock();
 };
 
