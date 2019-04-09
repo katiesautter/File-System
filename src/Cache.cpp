@@ -25,13 +25,13 @@ int Cache::saveToCache(char name[8], int blockNum, char buf[1024])
 	//if the cache size is larger than 5 cannot add a new block
 	if (currentCacheSize >= 5)
 	{
-		cout << "Too many blocks in cache" << endl;
-		return -1;
+		deleteBlock();
 	}
 	CacheNode * newCacheNode = new CacheNode(name, blockNum, buf);
 	newCacheNode->next = head;
 	head = newCacheNode;
 	currentCacheSize++;
+
 	
 	
 }
@@ -51,6 +51,31 @@ char* Cache::getBlock(int blockNum)
 	cout << "Block number not in cache" << endl;
 	return NULL;
 	
+}
+//delete block from cache
+void Cache::deleteBlock()
+{
+	CacheNode * search;
+	CacheNode * prev = NULL;
+
+	//deleting last block (first added) from cache
+	for (search = head; search != 0; search = search->next)
+	{
+		if (search->next == NULL)
+		{
+			delete(search);
+			if (prev == NULL)
+			{
+				head = NULL;
+			}
+			else
+			{
+				prev->next = NULL;
+			}
+		}
+		prev = search;
+	}
+	currentCacheSize--;
 }
 
 
