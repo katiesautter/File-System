@@ -205,7 +205,7 @@ int FileSystem::readf(char name[8], int blockNum, char buf[1024]) {
 	cout << "Read data from block " << blockNum << " of file named " << string(name) 
 		<< " located at block " << blockPos << " of the disk" << endl;
 	cout << "Data: " << string(buf) << endl;
-	cache.saveToCache(blockNum, buf); // add block to cache
+	cache.saveToCache(name, blockNum, buf); // add block to cache
 
 	return 1;
 } // End read
@@ -243,7 +243,7 @@ int FileSystem::writef(char name[8], int blockNum, char buf[1024]) {
 	cout << "Wrote data from block " << blockNum << " of file named " << string(name)
 		<< " located at block " << blockPos << " of the disk" << endl;
 	cout << "Data: " << string(buf) << endl;
-	cache.saveToCache(blockNum, buf);  //add block changes to cache
+	cache.saveToCache(name, blockNum, buf);  //add block changes to cache
 
 	return 1;
 } // end write
