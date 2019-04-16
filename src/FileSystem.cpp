@@ -249,25 +249,55 @@ void FileSystem::mkdir(int newNode, string name) {
 	Deletes specified directory
 */
 }
-void FileSystem::rm(string name, int node =-1) {
+void FileSystem::rm(string name, int node = -1, vector<directory> cwd) {
 	if (node != -1) {
-		for (list<directory>::iterator outi = root.begin(); outi != root.end(); outi++) {
+		for (vector<directory>::iterator outi = cwd.begin(); outi != cwd.end(); outi++) {
 			if (outi->inode_num == node) {
-				root.erase(outi);
+				
+				cwd.erase(outi);
 				break;
 			}
 		}
 	}
 	else if (name != "") {
-		for (list<directory>::iterator outi = root.begin(); outi != root.end(); outi++) {
+		for (vector<directory>::iterator outi = cwd.begin(); outi != cwd.end(); outi++) {
 			if (outi->name == name) {
-				root.erase(outi);
+				cwd.erase(outi);
 				break;
 			}
 		}
 	}
 	else cout << "There was an error deleting this directory" << endl;
 }
+
+/**
+	Changes current working directory
+*/
+FileSystem::directory FileSystem::cd(directory cwd, string command) {
+	
+	directory newDir;
+
+	if (command.compare("..")) {
+		if (cwd.parent.empty()) { //if directory has no parent, return the same directory
+			return cwd; 
+		}
+		else for (auto i : cwd.parent) { //return parent directory
+			newDir = *i;
+			return newDir;
+		}
+	}
+	else if (std::find(cwd.child.begin(), cwd.child.end(), command) != cwd.child.end()) { //if command is a child of CWD
+		for (auto i : cwd.child) {
+			if (i->name.compare(command)) { //find the entry with matching name
+				newDir = *i;
+				return newDir;
+			}
+		}
+		 
+		
+	}
+}
+
 /**
 	Cast a char[4] to an int
 */
