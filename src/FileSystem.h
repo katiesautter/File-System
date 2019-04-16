@@ -1,5 +1,7 @@
 #pragma once
 #include <fstream>
+#include <vector>
+#include <list>
 using namespace std;
 
 class FileSystem
@@ -12,13 +14,23 @@ public:
 	int ls(void);
 	int readf(char name[8], int blockNum, char buf[1024]);
 	int writef(char name[8], int blockNum, char buf[1024]);
+	void mkdir(int newNode, string name);
+	void rm(string name, int node);
 
 	static const int BLOCK_SIZE = 1024;
 	static const int FREE_BLOCK_LIST_SIZE = 128;
 	static const int NUM_INODES = 16;
 	static const int INODE_SIZE = 48;
 
+
 private:
+
+	struct directory {
+	public:
+		unsigned short inode_num;
+		std::string name;
+	};
+
 	struct Inode {
 	public:
 		Inode() {
@@ -33,7 +45,12 @@ private:
 		int size;
 		int blockPointers[8];
 		int used;
+		vector<directory> children;
 	};
+
+	
+	
+	list<directory> root;
 
 	fstream * disk;
 	char free_block_list[FREE_BLOCK_LIST_SIZE];
@@ -43,5 +60,7 @@ private:
 	void convertIntToChar(int toConvert, char output[4]);
 	void readSuperBlock();
 	void saveSuperBlock();
+
+	
 };
 

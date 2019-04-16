@@ -109,7 +109,6 @@ int FileSystem::createf(char name[8], int size) {
 		inodes[inode_num].blockPointers[i] = blockPtrs[i];
 	inodes[inode_num].size = size;
 	inodes[inode_num].used = 1;
-
 	saveSuperBlock();
 
 	delete [] blockPtrs;
@@ -237,6 +236,38 @@ int FileSystem::writef(char name[8], int blockNum, char buf[1024]) {
 	return 1;
 } // end write
 
+/**
+	Creates a new directory at root
+*/
+void FileSystem::mkdir(int newNode, string name) {
+	directory hold;
+	hold.inode_num = newNode;
+	hold.name = name;
+	root.push_back(hold);
+
+/**
+	Deletes specified directory
+*/
+}
+void FileSystem::rm(string name, int node =-1) {
+	if (node != -1) {
+		for (list<directory>::iterator outi = root.begin(); outi != root.end(); outi++) {
+			if (outi->inode_num == node) {
+				root.erase(outi);
+				break;
+			}
+		}
+	}
+	else if (name != "") {
+		for (list<directory>::iterator outi = root.begin(); outi != root.end(); outi++) {
+			if (outi->name == name) {
+				root.erase(outi);
+				break;
+			}
+		}
+	}
+	else cout << "There was an error deleting this directory" << endl;
+}
 /**
 	Cast a char[4] to an int
 */
