@@ -11,18 +11,74 @@ Cache::Cache()
 	maxCacheSize = 5;
 	currentCacheSize = 0;
 	head = NULL;
-
+  
 }
 
-void Cache::saveToCache(int blockNum, char buf[1024])
+//adding and saving block to cache
+void Cache::saveToCache(char name[8], int blockNum, char buf[1024])
 {
-	head = new CacheNode(blockNum, buf);
-	//cout << head->toString() << endl;
+	printf("**Saving to cache block number %d from file %s\n", blockNum, name);
+
+	for (CacheNode * search = head; search != 0; search = search->next)
+	{
+		cout << search->toString() << endl;
+	} 
+
+	//if the cache size is larger than 5 cannot add a new block
+	if (currentCacheSize >= maxCacheSize)
+	{
+		deleteBlock();
+	}
+	CacheNode * newCacheNode = new CacheNode(name, blockNum, buf);
+	newCacheNode->next = head;
+	head = newCacheNode;
+	currentCacheSize++;
+
+	
+	
 }
 
+//getting data from block
 char* Cache::getBlock(int blockNum)
 {
-	return 0;
+	for (CacheNode * search = head; search != 0; search = search->next)
+	{
+		//if the correct blockNumber is found return the data from that block 
+		if (search->blockNumber == blockNum)
+		{
+			cout << "**Getting data from cache**" << endl;
+			return search->blockData;
+		}
+
+	}
+	cout << "*****Block number not in cache*****" << endl;
+	return NULL;
+	
+}
+//delete block from cache
+void Cache::deleteBlock()
+{
+	CacheNode * search;
+	CacheNode * prev = NULL;
+
+	//deleting last block (first added) from cache
+	for (search = head; search != 0; search = search->next)
+	{
+		if (search->next == NULL)
+		{
+			delete(search);
+			if (prev == NULL)
+			{
+				head = NULL;
+			}
+			else
+			{
+				prev->next = NULL;
+			}
+		}
+		prev = search;
+	}
+	currentCacheSize--;
 }
 
 
