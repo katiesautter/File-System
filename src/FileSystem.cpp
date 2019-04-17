@@ -149,13 +149,13 @@ int FileSystem::deletef(char name[8]) {
 	saveSuperBlock();
 	return 1;
 } // End Delete
-int FileSystem::ls(void) {
+int FileSystem::ls(directory cwd) {
 	// List names of all files on disk
 	// Step 1: Print the name and size fields of all used inodes.
-	cout << "Files Currently on Drive: " << endl;
-	for (int i = 0; i < NUM_INODES; i++) {
-		if (inodes[i].used == 1)
-			cout << "\t" << inodes[i].name << ": " << inodes[i].size << " blocks" << endl;
+	cout << "Files Currently on " << cwd.name << endl;
+
+	for (auto i : cwd.child) {
+		cout << "\t" << i->name << ": " << inodes[i->inode_num].size << " blocks" << endl;
 	}
 	cout << endl;
 
@@ -246,14 +246,13 @@ void FileSystem::mkdir(int newNode, string name) {
 	root.push_back(hold);
 
 /**
-	Deletes specified directory
+	Deletes specified directory and children
 */
 }
-void FileSystem::rm(string name, int node = -1, vector<directory> cwd) {
+void FileSystem::rm(string name, int node = -1, vector<directory> cwd = {}) {
 	if (node != -1) {
 		for (vector<directory>::iterator outi = cwd.begin(); outi != cwd.end(); outi++) {
 			if (outi->inode_num == node) {
-				
 				cwd.erase(outi);
 				break;
 			}
@@ -287,13 +286,13 @@ FileSystem::directory FileSystem::cd(directory cwd, string command) {
 		}
 	}
 	else if (std::find(cwd.child.begin(), cwd.child.end(), command) != cwd.child.end()) { //if command is a child of CWD
+		
 		for (auto i : cwd.child) {
 			if (i->name.compare(command)) { //find the entry with matching name
 				newDir = *i;
 				return newDir;
 			}
 		}
-		 
 		
 	}
 }

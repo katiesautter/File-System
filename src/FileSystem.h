@@ -17,9 +17,11 @@ public:
 		vector<directory *>parent;
 	};
 
+
+	vector<directory> root;
 	int createf(char name[8], int size);
 	int deletef(char name[8]);
-	int ls(void);
+	int ls(directory cwd);
 	int readf(char name[8], int blockNum, char buf[1024]);
 	int writef(char name[8], int blockNum, char buf[1024]);
 	void mkdir(int newNode, string name);
@@ -51,7 +53,7 @@ private:
 
 	};
 
-	vector<directory> root;
+	
 
 
 	fstream * disk;
